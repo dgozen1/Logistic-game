@@ -1,0 +1,45 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Depoyu Çek
+        uses: actions/checkout@v4
+
+      - name: Node.js Kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Java 17 Kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Capacitor Projesini Başlat ve Android Ekle
+        run: |
+          npm init -y
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npx cap init "Lojistik Oyunu" "com.lojistik.oyunu" --web-dir=www
+          npx cap add android
+          npx cap copy android
+
+      - name: Debug APK Derle
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: APK Dosyasını Yayınla (Artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lojistik-Oyunu-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
