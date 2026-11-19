@@ -18,17 +18,19 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Java 17 Kur
+      - name: Java 21 Kur
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Capacitor Projesini Başlat ve Android Ekle
         run: |
+          mkdir -p www
+          if [ -f index.html ] && [ ! -f www/index.html ]; then cp index.html www/index.html; fi
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
-          npx cap init "Logistic-Game" "com.lojistik.oyunu" --web-dir=www
+          npx cap init "Lojistik Oyunu" "com.lojistik.oyunu" --web-dir=www
           npx cap add android
           npx cap copy android
 
@@ -41,5 +43,5 @@ jobs:
       - name: APK Dosyasını Yayınla (Artifact)
         uses: actions/upload-artifact@v4
         with:
-          name: Logistic-Game-APK
+          name: Lojistik-Oyunu-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
