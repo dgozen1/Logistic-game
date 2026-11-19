@@ -1,16 +1,16 @@
 name: Build Android APK
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main, master ]
-  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Depoyu Çek
+      - name: Depoyu İndir
         uses: actions/checkout@v4
 
       - name: Node.js Kur
@@ -24,24 +24,47 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Capacitor Projesini Başlat ve Android Ekle
+      - name: Web Dosyalarını Hazırla
         run: |
           mkdir -p www
-          if [ -f index.html ] && [ ! -f www/index.html ]; then cp index.html www/index.html; fi
-          npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android
-          npx cap init "Lojistik Oyunu" "com.lojistik.oyunu" --web-dir=www
-          npx cap add android
-          npx cap copy android
+          if [ -f index.html ] && [ ! -f www/index.html ]; then
+            cp index.html www/index.html
+          fi
+
+      - name: Capacitor Kur ve Android Projesini Hazırla
+        run: |
+          if [ ! -f package.json ]; then
+            npm init -y
+          fi
+          npm install --no-save @capacitor/core @capacitor/cli @capacitor/android
+          if [ ! -f capacitor.config.json ] && [ ! -f capacitor.config.ts ]; then
+            npx cap init "Logistic Game" "com.logisticgame.app" --web-dir=www
+          fi
+          if [ ! -d android ]; then
+            npx cap add android
+          fi
+          npx cap sync android
+
+      - name: Kotlin Çakışmasını Çöz
+        run: |
+          node -e '
+            const fs = require("fs");
+            const p = "android/app/build.gradle";
+            if (fs.existsSync(p)) {
+              let g = fs.readFileSync(p, "utf8");
+              const fix = `\nconfigurations.all {\n  exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk7"\n  exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk8"\n  resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"\n}\n`;
+              if (!g.includes("kotlin-stdlib-jdk8")) {
+                fs.writeFileSync(p, g + fix);
+              }
+            }
+          '
 
       - name: Debug APK Derle
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew assembleDebug
 
-      - name: APK Dosyasını Yayınla (Artifact)
+      - name: APK Dosyasını Artifact Olarak Yükle
         uses: actions/upload-artifact@v4
         with:
-          name: Lojistik-Oyunu-APK
+          name: logistic-game-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
